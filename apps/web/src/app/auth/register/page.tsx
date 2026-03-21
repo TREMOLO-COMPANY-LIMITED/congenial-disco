@@ -43,30 +43,47 @@ export default function RegisterPage() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {apiError && (
-            <p className="text-sm text-red-600">{apiError}</p>
+            <p role="alert" className="text-sm text-red-600">{apiError}</p>
           )}
 
           <div className="space-y-2">
             <Label htmlFor="name">名前</Label>
-            <Input id="name" {...register("name")} />
+            <Input
+              id="name"
+              autoComplete="name"
+              aria-describedby={errors.name ? "name-error" : undefined}
+              {...register("name")}
+            />
             {errors.name && (
-              <p className="text-sm text-red-600">{errors.name.message}</p>
+              <p id="name-error" role="alert" className="text-sm text-red-600">{errors.name.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">メールアドレス</Label>
-            <Input id="email" type="email" {...register("email")} />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              aria-describedby={errors.email ? "email-error" : undefined}
+              {...register("email")}
+            />
             {errors.email && (
-              <p className="text-sm text-red-600">{errors.email.message}</p>
+              <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="password">パスワード</Label>
-            <Input id="password" type="password" {...register("password")} />
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              aria-describedby={errors.password ? "password-error" : undefined}
+              {...register("password")}
+            />
             {errors.password && (
-              <p className="text-sm text-red-600">{errors.password.message}</p>
+              <p id="password-error" role="alert" className="text-sm text-red-600">{errors.password.message}</p>
             )}
           </div>
 
@@ -75,10 +92,12 @@ export default function RegisterPage() {
             <Input
               id="passwordConfirmation"
               type="password"
+              autoComplete="new-password"
+              aria-describedby={errors.passwordConfirmation ? "passwordConfirmation-error" : undefined}
               {...register("passwordConfirmation")}
             />
             {errors.passwordConfirmation && (
-              <p className="text-sm text-red-600">
+              <p id="passwordConfirmation-error" role="alert" className="text-sm text-red-600">
                 {errors.passwordConfirmation.message}
               </p>
             )}

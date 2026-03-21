@@ -85,6 +85,19 @@ describe("RegisterPage", () => {
     });
   });
 
+  it("shows mismatch error when passwords do not match", async () => {
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+    await user.type(screen.getByLabelText("名前"), "Test User");
+    await user.type(screen.getByLabelText("メールアドレス"), "test@example.com");
+    await user.type(screen.getByLabelText("パスワード"), "Password1");
+    await user.type(screen.getByLabelText("パスワード（確認）"), "Password2");
+    await user.click(screen.getByRole("button", { name: "登録" }));
+    await waitFor(() => {
+      expect(screen.getByText("パスワードが一致しません")).toBeInTheDocument();
+    });
+  });
+
   it("has link to login page", () => {
     render(<RegisterPage />);
     const link = screen.getByRole("link", { name: /ログイン/ });
