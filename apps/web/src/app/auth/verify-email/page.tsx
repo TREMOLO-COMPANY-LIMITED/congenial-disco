@@ -23,15 +23,18 @@ export default function VerifyEmailPage() {
     if (!token) return;
 
     const verify = async () => {
-      const { error } = await authClient.emailVerification.verifyEmail({
-        query: { token },
-      });
-      if (error) {
-        setError(error.message);
+      try {
+        const { error } = await authClient.emailVerification.verifyEmail({
+          query: { token },
+        });
+        if (error) {
+          setError(error.message);
+          return;
+        }
+        router.push("/auth/login?verified=true");
+      } finally {
         setVerifying(false);
-        return;
       }
-      router.push("/auth/login?verified=true");
     };
 
     verify();
@@ -54,7 +57,7 @@ export default function VerifyEmailPage() {
           <CardTitle>認証エラー</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-red-600">{error}</p>
+          <p role="alert" className="text-sm text-red-600">{error}</p>
           <p className="mt-4 text-center text-sm text-gray-600">
             <Link
               href="/auth/register"
