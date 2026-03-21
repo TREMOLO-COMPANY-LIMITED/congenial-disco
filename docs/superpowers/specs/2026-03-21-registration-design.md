@@ -12,6 +12,7 @@ Email + password registration with mandatory email verification, using Better Au
 - Post-registration flow: register → "check your email" screen → click link → login page
 - Profile image upload handled separately (post-registration, out of scope for this spec)
 - No social login — email/password only
+- Auto sign-in after verification: disabled (user must log in manually)
 
 ## Architecture
 
@@ -21,10 +22,11 @@ Email + password registration with mandatory email verification, using Better Au
                                                Create user in DB
                                                        ↓
                                                Send verification email via Resend
+                                               (link: {WEB_URL}/auth/verify-email?token=xxx)
                                                        ↓
 [Verify Email Page] ← redirect              [User clicks link in email]
                                                        ↓
-                                               Better Auth verifies token
+                                               Frontend calls authClient.verifyEmail({ query: { token } })
                                                        ↓
                                                emailVerified = true
                                                        ↓
@@ -33,15 +35,53 @@ Email + password registration with mandatory email verification, using Better Au
 
 ## Backend Changes
 
-### `apps/api/src/lib/auth.ts`
+### 1. `apps/api/src/types.ts` — Add `WEB_URL` to Bindings
 
-Single file change — extend existing Better Auth config:
+```typescript
+export type Bindings = {
+  // ... existing fields ...
+  WEB_URL?: string;
+};
+```
 
-- Enable `emailVerification`:
-  - `sendOnSignUp: true` — auto-send on registration
-  - `sendVerificationEmail` callback uses Resend to send the email
-  - Callback URL: `{WEB_URL}/auth/verify-email`
-- Set `requireEmailVerification: true` in `emailAndPassword` config
+### 2. `apps/api/wrangler.toml` — Add `WEB_URL` env var
+
+Add `WEB_URL` to the `[vars]` section (e.g., `WEB_URL = "http://localhost:3000"` for dev).
+
+### 3. `apps/api/src/lib/auth.ts` — Extend Better Auth config
+
+```typescript
+import { Resend } from "resend";
+
+export function createAuth(env: Bindings) {
+  const db = createDb(env.DATABASE_URL);
+
+  return betterAuth({
+    database: drizzleAdapter(db, { provider: "pg" }),
+    baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
+    secret: env.BETTER_AUTH_SECRET,
+    trustedOrigins: [env.WEB_URL || "http://localhost:3000"],
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: true,
+    },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: false,
+      sendVerificationEmail: async ({ user, token }) => {
+        const resend = new Resend(env.RESEND_API_KEY);
+        const verificationUrl = `${env.WEB_URL || "http://localhost:3000"}/auth/verify-email?token=${token}`;
+        await resend.emails.send({
+          from: "noreply@example.com",
+          to: user.email,
+          subject: "メールアドレスの確認",
+          html: `<a href="${verificationUrl}">メールアドレスを確認する</a>`,
+        });
+      },
+    },
+  });
+}
+```
 
 No custom API routes needed. Better Auth handles all auth endpoints.
 
@@ -72,7 +112,7 @@ No custom API routes needed. Better Auth handles all auth endpoints.
 
 Two states:
 1. **No token** (arrived via redirect after registration): display "Check your email" message with the email address from query params
-2. **Token present** (arrived via email link): Better Auth verifies the token, on success redirect to `/auth/login`
+2. **Token present** (arrived via email link): call `authClient.emailVerification.verifyEmail({ query: { token } })`, on success redirect to `/auth/login` with success message, on failure display error message
 
 ### Login Page (`/auth/login`)
 
@@ -80,7 +120,8 @@ Two states:
 - Submit: `authClient.signIn.email({ email, password })`
 - Success: redirect to `/`
 - Error: display inline error message
-- Link: "Don't have an account? Register here" → `/auth/register`
+- Links:
+  - "Don't have an account? Register here" → `/auth/register`
 
 ## Shared Package Changes
 
