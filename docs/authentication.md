@@ -1,117 +1,152 @@
-# 認証フロー
+# Authentication Flow
 
-## 概要
+## Overview
 
-メールアドレス + パスワードによる会員登録・ログイン機能。Better Auth を使用し、メール認証を必須とする。
+Email + password registration and login using Better Auth with mandatory email verification.
 
-## 技術スタック
+## Tech Stack
 
-| レイヤー | 技術 |
-|---------|------|
-| 認証基盤 | Better Auth |
-| メール送信 | Resend (`noreply@kafka.design`) |
-| バリデーション | Zod (共有スキーマ `@starter/shared`) |
-| フォーム | React Hook Form + `@hookform/resolvers` |
-| DB | Drizzle ORM + PostgreSQL (UUID主キー) |
+| Layer | Technology |
+|-------|-----------|
+| Auth | Better Auth |
+| Email | Resend (`noreply@kafka.design`) |
+| Validation | Zod (shared schemas in `@starter/shared`) |
+| Forms | React Hook Form + `@hookform/resolvers` |
+| DB | Drizzle ORM + PostgreSQL (UUID primary keys) |
 
-## フロー
+## Flows
 
-### 会員登録
-
-```
-1. ユーザーが /auth/register でフォーム入力
-2. フロントエンドで Zod バリデーション（名前、メール、パスワード、パスワード確認）
-3. authClient.signUp.email() → Better Auth API (POST /api/auth/sign-up/email)
-4. Better Auth がユーザーをDBに作成（emailVerified = false）
-5. sendVerificationEmail コールバックで Resend 経由の認証メール送信
-6. フロントエンドが /auth/verify-email?email=xxx にリダイレクト
-7. ユーザーがメール内のリンクをクリック
-8. Better Auth API がトークンをサーバーサイドで検証、emailVerified = true に更新
-9. callbackURL に基づき /auth/login?verified=true にリダイレクト
-```
-
-### ログイン
+### Registration
 
 ```
-1. ユーザーが /auth/login でメール・パスワードを入力
-2. authClient.signIn.email() → Better Auth API (POST /api/auth/sign-in/email)
-3. emailVerified = false の場合はエラー（メール認証が必須）
-4. 成功時: セッション作成、/ にリダイレクト
+User                    Frontend                   API (Better Auth)           Resend
+ │                         │                            │                       │
+ ├─ Fill form ───────────► │                            │                       │
+ │                         ├─ Zod validation            │                       │
+ │                         ├─ signUp.email() ─────────► │                       │
+ │                         │                            ├─ Create user           │
+ │                         │                            │  (emailVerified=false) │
+ │                         │                            ├─ Send email ─────────► │
+ │                         │                            │                       ├─► Email to user
+ │                         ◄─ Response ─────────────────┤                       │
+ │  ◄─ Redirect to         │                            │                       │
+ │     /auth/verify-email  │                            │                       │
+ │                         │                            │                       │
+ ├─ Click email link ─────────────────────────────────► │                       │
+ │                         │                            ├─ Verify token          │
+ │                         │                            ├─ emailVerified = true  │
+ │  ◄─ Redirect to /auth/login?verified=true ───────────┤                       │
+ │                         │                            │                       │
 ```
 
-## ページ構成
+**Steps:**
 
-| パス | ファイル | 役割 |
-|------|---------|------|
-| `/auth/register` | `apps/web/src/app/auth/register/page.tsx` | 登録フォーム |
-| `/auth/verify-email` | `apps/web/src/app/auth/verify-email/page.tsx` | 「メールを確認してください」画面 |
-| `/auth/login` | `apps/web/src/app/auth/login/page.tsx` | ログインフォーム |
-| `/auth/*` (共通) | `apps/web/src/app/auth/layout.tsx` | 中央寄せカードレイアウト |
+1. User fills the form at `/auth/register` (name, email, password, password confirmation)
+2. Frontend validates with Zod (`registerSchema`)
+3. `authClient.signUp.email()` → `POST /api/auth/sign-up/email`
+4. Better Auth creates user in DB (`emailVerified = false`)
+5. `sendVerificationEmail` callback sends verification email via Resend
+6. Frontend redirects to `/auth/verify-email?email=xxx`
+7. User clicks the verification link in email
+8. Better Auth API verifies token server-side, sets `emailVerified = true`
+9. Redirects to `/auth/login?verified=true` based on `callbackURL`
 
-## バリデーション
+### Login
 
-`packages/shared/src/types/auth.ts` に定義。フロントエンド・バックエンド共通で使用。
+```
+User                    Frontend                   API (Better Auth)
+ │                         │                            │
+ ├─ Enter credentials ───► │                            │
+ │                         ├─ Zod validation            │
+ │                         ├─ signIn.email() ─────────► │
+ │                         │                            ├─ Check emailVerified
+ │                         │                            │  ├─ false → Error
+ │                         │                            │  └─ true  → Create session
+ │                         ◄─ Response ─────────────────┤
+ │  ◄─ Redirect to / ──── │                            │
+ │                         │                            │
+```
 
-**パスワード要件:**
-- 8文字以上
-- 大文字を含む
-- 小文字を含む
-- 数字を含む
+**Steps:**
 
-**登録スキーマ (`registerSchema`):**
-- `name`: 1〜100文字
-- `email`: 有効なメールアドレス
-- `password`: 上記パスワード要件
-- `passwordConfirmation`: password と一致
+1. User enters email and password at `/auth/login`
+2. `authClient.signIn.email()` → `POST /api/auth/sign-in/email`
+3. If `emailVerified = false`, returns error (email verification required)
+4. On success: session created, redirect to `/`
 
-**ログインスキーマ (`loginSchema`):**
-- `email`: 有効なメールアドレス
-- `password`: 1文字以上
+## Pages
 
-## バックエンド設定
+| Path | File | Description |
+|------|------|-------------|
+| `/auth/register` | `apps/web/src/app/auth/register/page.tsx` | Registration form |
+| `/auth/verify-email` | `apps/web/src/app/auth/verify-email/page.tsx` | "Check your email" screen |
+| `/auth/login` | `apps/web/src/app/auth/login/page.tsx` | Login form |
+| `/auth/*` (shared) | `apps/web/src/app/auth/layout.tsx` | Centered card layout |
 
-### Better Auth 設定 (`apps/api/src/lib/auth.ts`)
+## Validation
 
-- `emailAndPassword.requireEmailVerification: true` — メール認証なしではログイン不可
-- `emailVerification.sendOnSignUp: true` — 登録時に自動で認証メール送信
-- `emailVerification.autoSignInAfterVerification: false` — 認証後の自動ログイン無効
-- `advanced.database.generateId: "uuid"` — DB の UUID カラムに対応
-- `trustedOrigins` — フロントエンドのオリジンを許可（クロスオリジン対応）
-- Drizzle アダプターに `schema` マッピングを渡す（`user`, `session`, `account`, `verification`）
+Defined in `packages/shared/src/types/auth.ts`. Shared between frontend and backend.
 
-### 環境変数
+**Password requirements:**
+- 8+ characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
 
-| 変数 | 場所 | 用途 |
-|------|------|------|
-| `BETTER_AUTH_SECRET` | `apps/api/.dev.vars` | セッション暗号化キー |
-| `BETTER_AUTH_URL` | `apps/api/.dev.vars` | Better Auth API の URL |
-| `RESEND_API_KEY` | `apps/api/.dev.vars` | Resend API キー |
-| `WEB_URL` | `apps/api/wrangler.toml` | フロントエンド URL（メールリンク等） |
-| `NEXT_PUBLIC_API_URL` | `apps/web/.env.local` | API サーバー URL |
+**Registration schema (`registerSchema`):**
+- `name`: 1–100 characters
+- `email`: valid email address
+- `password`: meets password requirements above
+- `passwordConfirmation`: must match `password`
 
-## DB スキーマ
+**Login schema (`loginSchema`):**
+- `email`: valid email address
+- `password`: 1+ characters
 
-`packages/db/src/schema/index.ts` に定義。Better Auth が使用する4テーブル：
+## Backend Configuration
+
+### Better Auth (`apps/api/src/lib/auth.ts`)
+
+- `emailAndPassword.requireEmailVerification: true` — login blocked without verified email
+- `emailVerification.sendOnSignUp: true` — sends verification email on registration
+- `emailVerification.autoSignInAfterVerification: false` — no auto sign-in after verification
+- `advanced.database.generateId: "uuid"` — matches UUID column types in DB
+- `trustedOrigins` — allows frontend origin (cross-origin support)
+- Drizzle adapter with explicit `schema` mapping (`user`, `session`, `account`, `verification`)
+
+### Environment Variables
+
+| Variable | Location | Purpose |
+|----------|----------|---------|
+| `BETTER_AUTH_SECRET` | `apps/api/.dev.vars` | Session encryption key |
+| `BETTER_AUTH_URL` | `apps/api/.dev.vars` | Better Auth API URL |
+| `RESEND_API_KEY` | `apps/api/.dev.vars` | Resend API key |
+| `WEB_URL` | `apps/api/wrangler.toml` | Frontend URL (used in email links) |
+| `NEXT_PUBLIC_API_URL` | `apps/web/.env.local` | API server URL |
+
+## DB Schema
+
+Defined in `packages/db/src/schema/index.ts`. Four tables used by Better Auth:
 
 - **users** — `id`, `email`, `name`, `image`, `emailVerified`, `createdAt`, `updatedAt`
 - **sessions** — `id`, `userId`, `token`, `expiresAt`, `ipAddress`, `userAgent`
-- **accounts** — `id`, `userId`, `accountId`, `providerId`, `password`, トークン各種
+- **accounts** — `id`, `userId`, `accountId`, `providerId`, `password`, tokens
 - **verifications** — `id`, `identifier`, `value`, `expiresAt`
 
-## テスト
+## Tests
 
 ```bash
-# 共有スキーマのテスト（11テスト）
+# Shared schema tests (11 tests)
 cd packages/shared && pnpm vitest run
 
-# フロントエンドのテスト（18テスト）
+# Frontend tests (18 tests)
 cd apps/web && pnpm vitest run
 ```
 
-## 未実装（スコープ外）
+## Out of Scope
 
-- ソーシャルログイン（Google, GitHub 等）
-- パスワードリセット
-- プロフィール画像アップロード（登録後の別フロー）
-- アカウント削除
-- レート制限
+- Social login (Google, GitHub, etc.)
+- Password reset
+- Profile image upload (separate flow after registration)
+- Account deletion
+- Rate limiting
