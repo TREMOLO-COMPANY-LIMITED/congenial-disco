@@ -11,6 +11,7 @@ export type Bindings = {
   R2_BUCKET_NAME?: string;
   RESEND_API_KEY?: string;
   SENTRY_DSN?: string;
+  WEB_URL?: string;
 };
 
 export type Env = { Bindings: Bindings };
