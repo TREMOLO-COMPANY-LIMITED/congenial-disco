@@ -1,0 +1,23 @@
+{
+  "name": "@starter/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^3.24"
+  },
+  "devDependencies": {
+    "@starter/typescript-config": "workspace:*",
+    "typescript": "^5.7",
+    "vitest": "^3.1"
+  }
+}

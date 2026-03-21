@@ -1,0 +1,37 @@
+{
+  "name": "@starter/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.0",
+    "@starter/shared": "workspace:*",
+    "@starter/ui": "workspace:*",
+    "@tanstack/react-query": "^5.67",
+    "lucide-react": "^0.475",
+    "next": "^15.3",
+    "react": "^19.0",
+    "react-dom": "^19.0",
+    "react-hook-form": "^7.54",
+    "zod": "^3.24",
+    "zustand": "^5.0"
+  },
+  "devDependencies": {
+    "@starter/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.0",
+    "@types/node": "25.5.0",
+    "@types/react": "^19.0",
+    "@types/react-dom": "^19.0",
+    "@vitejs/plugin-react": "^4.0",
+    "tailwindcss": "^4.0",
+    "typescript": "^5.7",
+    "vitest": "^3.1"
+  }
+}
