@@ -6,6 +6,7 @@ import type { Bindings } from "../types";
 
 export function createAuth(env: Bindings) {
   const db = createDb(env.DATABASE_URL);
+  const resend = new Resend(env.RESEND_API_KEY);
 
   return betterAuth({
     database: drizzleAdapter(db, { provider: "pg" }),
@@ -20,8 +21,7 @@ export function createAuth(env: Bindings) {
       sendOnSignUp: true,
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, token }) => {
-        const resend = new Resend(env.RESEND_API_KEY);
-        const verificationUrl = `${env.WEB_URL || "http://localhost:3000"}/auth/verify-email?token=${token}`;
+        const verificationUrl = `${env.WEB_URL || "http://localhost:3000"}/auth/verify-email?token=${encodeURIComponent(token)}`;
         await resend.emails.send({
           from: "noreply@example.com",
           to: user.email,
