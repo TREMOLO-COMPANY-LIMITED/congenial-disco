@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { Resend } from "resend";
-import { createDb } from "@starter/db";
+import { createDb, users, sessions, accounts, verifications } from "@starter/db";
 import type { Bindings } from "../types";
 
 export function createAuth(env: Bindings) {
@@ -9,10 +9,18 @@ export function createAuth(env: Bindings) {
   const resend = new Resend(env.RESEND_API_KEY);
 
   return betterAuth({
-    database: drizzleAdapter(db, { provider: "pg" }),
+    database: drizzleAdapter(db, {
+      provider: "pg",
+      schema: { user: users, session: sessions, account: accounts, verification: verifications },
+    }),
     baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
     secret: env.BETTER_AUTH_SECRET,
     trustedOrigins: [env.WEB_URL || "http://localhost:3000"],
+    advanced: {
+      database: {
+        generateId: "uuid",
+      },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
