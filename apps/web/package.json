@@ -15,6 +15,7 @@
     "@starter/shared": "workspace:*",
     "@starter/ui": "workspace:*",
     "@tanstack/react-query": "^5.67",
+    "better-auth": "^1.5.5",
     "lucide-react": "^0.475",
     "next": "^15.3",
     "react": "^19.0",
@@ -26,10 +27,13 @@
   "devDependencies": {
     "@starter/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "25.5.0",
     "@types/react": "^19.0",
     "@types/react-dom": "^19.0",
     "@vitejs/plugin-react": "^4.0",
+    "jsdom": "^29.0.1",
     "tailwindcss": "^4.0",
     "typescript": "^5.7",
     "vitest": "^3.1"

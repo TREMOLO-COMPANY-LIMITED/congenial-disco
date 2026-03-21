@@ -1,28 +1,18 @@
-# Database
 # Local (Docker PostgreSQL)
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/starter
 # Staging/Production (Supabase Pooler)
 # DATABASE_URL=postgresql://user:password@<supabase-pooler-host>:6543/postgres
 
-# Redis
 # Local (Docker Redis + REST proxy)
 UPSTASH_REDIS_REST_URL=http://localhost:8079
 UPSTASH_REDIS_REST_TOKEN=local-dev-token
 # Staging/Production (Upstash)
 # UPSTASH_REDIS_REST_URL=https://<your-upstash-endpoint>.upstash.io
 # UPSTASH_REDIS_REST_TOKEN=<your-upstash-token>
-
-# Better Auth
-BETTER_AUTH_SECRET=
+BETTER_AUTH_SECRET=your-secret-here
 BETTER_AUTH_URL=http://localhost:8787
-
-# Resend
 RESEND_API_KEY=
-
-# Sentry
 SENTRY_DSN=
-
-# Cloudflare R2
 R2_ACCOUNT_ID=
 R2_ACCESS_KEY_ID=
 R2_SECRET_ACCESS_KEY=

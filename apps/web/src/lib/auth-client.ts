@@ -1,3 +1,5 @@
-// Better Auth client-side configuration
-// TODO: Configure when Better Auth is set up
-export {};
+import { createAuthClient } from "better-auth/react";
+
+export const authClient = createAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787",
+});

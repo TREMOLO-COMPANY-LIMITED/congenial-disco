@@ -25,6 +25,10 @@
     },
     "db:migrate": {
       "cache": false
+    },
+    "e2e": {
+      "dependsOn": ["build"],
+      "cache": false
     }
   }
 }

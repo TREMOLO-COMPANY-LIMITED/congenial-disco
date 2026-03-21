@@ -11,7 +11,13 @@
     "lint": "turbo lint",
     "test": "turbo test",
     "clean": "turbo clean",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:setup": "docker compose up -d && pnpm --filter @starter/db db:migrate",
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down",
+    "db:generate": "pnpm --filter @starter/db db:generate",
+    "db:migrate": "pnpm --filter @starter/db db:migrate",
+    "db:studio": "pnpm --filter @starter/db db:studio"
   },
   "devDependencies": {
     "turbo": "^2.4",

@@ -11,17 +11,22 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "hono": "^4.7",
+    "@aws-sdk/client-s3": "^3.1014.0",
     "@hono/zod-openapi": "^0.18",
-    "zod": "^3.24",
+    "@sentry/cloudflare": "^10.45.0",
+    "@starter/db": "workspace:*",
     "@starter/shared": "workspace:*",
-    "@starter/db": "workspace:*"
+    "@upstash/redis": "^1.37.0",
+    "better-auth": "^1.5.5",
+    "hono": "^4.7",
+    "resend": "^6.9.4",
+    "zod": "^3.24"
   },
   "devDependencies": {
-    "@starter/typescript-config": "workspace:*",
     "@cloudflare/workers-types": "^4.0",
-    "wrangler": "^4.0",
+    "@starter/typescript-config": "workspace:*",
     "typescript": "^5.7",
-    "vitest": "^3.1"
+    "vitest": "^3.1",
+    "wrangler": "^4.0"
   }
 }

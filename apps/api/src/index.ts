@@ -1,14 +1,25 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
+import type { Env } from "./types";
 import { healthRoute } from "./routes/health";
+import { verifyRoute } from "./routes/verify";
+import { authRoute } from "./routes/auth";
 
-type Bindings = {
-  DATABASE_URL: string;
-  ENVIRONMENT: string;
-};
+const app = new OpenAPIHono<Env>();
 
-const app = new OpenAPIHono<{ Bindings: Bindings }>();
+app.use(
+  "*",
+  cors({
+    origin: ["http://localhost:3000"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 app.route("/", healthRoute);
+app.route("/", verifyRoute);
+app.route("/", authRoute);
 
 app.doc("/doc", {
   openapi: "3.0.0",
