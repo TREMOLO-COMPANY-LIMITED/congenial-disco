@@ -30,7 +30,7 @@ export function createAuth(env: Bindings) {
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         await resend.emails.send({
-          from: "onboarding@resend.dev",
+          from: "noreply@kafka.design",
           to: user.email,
           subject: "メールアドレスの確認",
           html: `<a href="${url}">メールアドレスを確認する</a>`,
