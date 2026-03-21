@@ -1,30 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import VerifyEmailPage from "../page";
 
-const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }));
 
 let mockSearchParams: { get: (key: string) => string | null };
 
-const mockVerifyEmail = vi.fn();
-vi.mock("@/lib/auth-client", () => ({
-  authClient: {
-    emailVerification: {
-      verifyEmail: (...args: unknown[]) => mockVerifyEmail(...args),
-    },
-  },
-}));
-
 describe("VerifyEmailPage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("shows check-email message when email param is present and no token", () => {
+  it("shows check-email message with email address", () => {
     mockSearchParams = {
       get: (key: string) => (key === "email" ? "test@example.com" : null),
     };
@@ -33,43 +18,17 @@ describe("VerifyEmailPage", () => {
     expect(screen.getByText(/メールを確認してください/)).toBeInTheDocument();
   });
 
-  it("calls verifyEmail when token param is present", async () => {
-    mockSearchParams = {
-      get: (key: string) => (key === "token" ? "abc123" : null),
-    };
-    mockVerifyEmail.mockResolvedValue({ error: null });
+  it("shows generic message when no email param", () => {
+    mockSearchParams = { get: () => null };
     render(<VerifyEmailPage />);
-
-    await waitFor(() => {
-      expect(mockVerifyEmail).toHaveBeenCalledWith({
-        query: { token: "abc123" },
-      });
-    });
+    expect(screen.getByText(/メールを確認してください/)).toBeInTheDocument();
+    expect(screen.getByText(/リンクをクリック/)).toBeInTheDocument();
   });
 
-  it("redirects to login on successful verification", async () => {
-    mockSearchParams = {
-      get: (key: string) => (key === "token" ? "abc123" : null),
-    };
-    mockVerifyEmail.mockResolvedValue({ error: null });
+  it("has link to login page", () => {
+    mockSearchParams = { get: () => null };
     render(<VerifyEmailPage />);
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/auth/login?verified=true");
-    });
-  });
-
-  it("shows error on failed verification", async () => {
-    mockSearchParams = {
-      get: (key: string) => (key === "token" ? "bad-token" : null),
-    };
-    mockVerifyEmail.mockResolvedValue({
-      error: { message: "Invalid token" },
-    });
-    render(<VerifyEmailPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Invalid token")).toBeInTheDocument();
-    });
+    const link = screen.getByRole("link", { name: /ログイン画面へ/ });
+    expect(link).toHaveAttribute("href", "/auth/login");
   });
 });

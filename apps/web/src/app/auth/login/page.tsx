@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +9,7 @@ import { loginSchema, type LoginInput } from "@starter/shared";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@starter/ui";
 import { authClient } from "@/lib/auth-client";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verified = searchParams.get("verified") === "true";
@@ -30,7 +30,7 @@ export default function LoginPage() {
       password: data.password,
     });
     if (error) {
-      setApiError(error.message);
+      setApiError(error.message ?? "ログインに失敗しました");
       return;
     }
     router.push("/");
@@ -97,5 +97,13 @@ export default function LoginPage() {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   );
 }

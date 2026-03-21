@@ -20,13 +20,12 @@ export function createAuth(env: Bindings) {
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: false,
-      sendVerificationEmail: async ({ user, token }) => {
-        const verificationUrl = `${env.WEB_URL || "http://localhost:3000"}/auth/verify-email?token=${encodeURIComponent(token)}`;
+      sendVerificationEmail: async ({ user, url }) => {
         await resend.emails.send({
           from: "noreply@example.com",
           to: user.email,
           subject: "メールアドレスの確認",
-          html: `<a href="${verificationUrl}">メールアドレスを確認する</a>`,
+          html: `<a href="${url}">メールアドレスを確認する</a>`,
         });
       },
     },

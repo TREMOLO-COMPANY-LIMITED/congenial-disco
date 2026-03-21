@@ -27,9 +27,10 @@ export default function RegisterPage() {
       name: data.name,
       email: data.email,
       password: data.password,
+      callbackURL: "/auth/login?verified=true",
     });
     if (error) {
-      setApiError(error.message);
+      setApiError(error.message ?? "登録に失敗しました");
       return;
     }
     router.push(`/auth/verify-email?email=${encodeURIComponent(data.email)}`);
