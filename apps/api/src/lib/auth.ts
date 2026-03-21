@@ -22,7 +22,7 @@ export function createAuth(env: Bindings) {
       autoSignInAfterVerification: false,
       sendVerificationEmail: async ({ user, url }) => {
         await resend.emails.send({
-          from: "noreply@example.com",
+          from: "onboarding@resend.dev",
           to: user.email,
           subject: "メールアドレスの確認",
           html: `<a href="${url}">メールアドレスを確認する</a>`,
