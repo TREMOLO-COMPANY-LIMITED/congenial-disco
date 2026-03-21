@@ -23,3 +23,11 @@ export const verifyResponseSchema = z.object({
 });
 
 export type VerifyResponse = z.infer<typeof verifyResponseSchema>;
+
+export {
+  passwordSchema,
+  registerSchema,
+  loginSchema,
+  type RegisterInput,
+  type LoginInput,
+} from "./auth";
