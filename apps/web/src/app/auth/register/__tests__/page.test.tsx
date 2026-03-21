@@ -58,7 +58,7 @@ describe("RegisterPage", () => {
         name: "Test User",
         email: "test@example.com",
         password: "Password1",
-        callbackURL: "/auth/login?verified=true",
+        callbackURL: "http://localhost:3000/auth/login?verified=true",
       });
     });
     await waitFor(() => {
