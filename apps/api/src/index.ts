@@ -4,6 +4,7 @@ import type { Env } from "./types";
 import { healthRoute } from "./routes/health";
 import { verifyRoute } from "./routes/verify";
 import { authRoute } from "./routes/auth";
+import { uploadRoute } from "./routes/upload";
 
 const app = new OpenAPIHono<Env>();
 
@@ -20,6 +21,7 @@ app.use(
 app.route("/", healthRoute);
 app.route("/", verifyRoute);
 app.route("/", authRoute);
+app.route("/", uploadRoute);
 
 app.doc("/doc", {
   openapi: "3.0.0",
