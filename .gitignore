@@ -10,3 +10,5 @@ dist/
 .vercel/
 .wrangler/
 coverage/
+.DS_Store
+*.pem
