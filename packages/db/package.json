@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:seed-admin": "tsx src/seed-admin.ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@starter/typescript-config": "workspace:*",
     "drizzle-kit": "^0.30",
+    "tsx": "^4.0",
     "typescript": "^5.7"
   }
 }
