@@ -5,6 +5,7 @@ import { healthRoute } from "./routes/health";
 import { verifyRoute } from "./routes/verify";
 import { authRoute } from "./routes/auth";
 import { uploadRoute } from "./routes/upload";
+import { adminRoute } from "./routes/admin";
 
 const app = new OpenAPIHono<Env>();
 
@@ -28,6 +29,7 @@ app.route("/", healthRoute);
 app.route("/", verifyRoute);
 app.route("/", authRoute);
 app.route("/", uploadRoute);
+app.route("/", adminRoute);
 
 app.doc("/doc", {
   openapi: "3.0.0",
