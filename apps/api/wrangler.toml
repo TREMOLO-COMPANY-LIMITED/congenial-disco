@@ -6,3 +6,4 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 ENVIRONMENT = "development"
 WEB_URL = "http://localhost:3000"
+ADMIN_URL = "http://localhost:3001"

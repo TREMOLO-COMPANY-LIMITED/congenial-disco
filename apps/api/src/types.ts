@@ -13,6 +13,7 @@ export type Bindings = {
   RESEND_API_KEY?: string;
   SENTRY_DSN?: string;
   WEB_URL?: string;
+  ADMIN_URL?: string;
 };
 
 export type Env = { Bindings: Bindings };

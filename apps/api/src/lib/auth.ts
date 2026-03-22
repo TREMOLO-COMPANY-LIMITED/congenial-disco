@@ -15,7 +15,10 @@ export function createAuth(env: Bindings) {
     }),
     baseURL: env.BETTER_AUTH_URL || "http://localhost:8787",
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: [env.WEB_URL || "http://localhost:3000"],
+    trustedOrigins: [
+      env.WEB_URL || "http://localhost:3000",
+      env.ADMIN_URL || "http://localhost:3001",
+    ],
     advanced: {
       database: {
         generateId: "uuid",

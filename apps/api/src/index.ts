@@ -11,8 +11,14 @@ const app = new OpenAPIHono<Env>();
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:3000"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: (origin, c) => {
+      const allowed = [
+        c.env.WEB_URL || "http://localhost:3000",
+        c.env.ADMIN_URL || "http://localhost:3001",
+      ];
+      return allowed.includes(origin) ? origin : "";
+    },
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
