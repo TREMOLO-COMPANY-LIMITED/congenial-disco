@@ -36,6 +36,11 @@
 ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user';
 ```
 
+Drizzle スキーマ:
+```typescript
+role: text('role').notNull().default('user'),  // 'user' | 'admin' | 'super_admin'
+```
+
 - 型: `text`, NOT NULL, デフォルト `'user'`
 - 値: `user` | `admin` | `super_admin`
 - 既存ユーザーはすべて `user` がデフォルト
@@ -45,8 +50,19 @@ ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user';
 
 Better Auth の `banned` フィールドを有効化し、アカウント停止/有効化に使用する。
 
-- `banned`: boolean (nullable)
-- `bannedReason`: text (nullable)
+Drizzle スキーマ:
+```typescript
+banned: boolean('banned'),
+bannedReason: text('banned_reason'),
+```
+
+### 初期 super_admin のブートストラップ
+
+最初の `super_admin` は DB マイグレーション or シードスクリプトで作成する:
+```sql
+UPDATE users SET role = 'super_admin' WHERE email = '<admin-email>';
+```
+`packages/db` にシードスクリプト (`seed-admin.ts`) を用意し、環境変数 `ADMIN_EMAIL` で指定。
 
 ## API Design
 
@@ -68,10 +84,17 @@ apps/api/src/routes/admin/
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/api/admin/me` | 認証済みユーザーの role 確認 |
 | GET | `/api/admin/users` | ユーザー一覧（ページネーション、検索） |
 | GET | `/api/admin/users/:id` | ユーザー詳細 |
-| PATCH | `/api/admin/users/:id/role` | 権限変更 |
+| PATCH | `/api/admin/users/:id/role` | 権限変更（`super_admin` のみ実行可能） |
 | PATCH | `/api/admin/users/:id/status` | アカウント停止/有効化 |
+
+### 権限階層ルール
+
+- `admin`: ユーザー一覧・詳細の閲覧、アカウント停止/有効化が可能
+- `super_admin`: 上記に加え、role の変更が可能
+- 自分自身の role 変更・ban は不可（最後の `super_admin` を消すリスク防止）
 
 **バリデーション:** リクエスト/レスポンスは `@starter/shared` の Zod schema で型安全に定義。OpenAPI (`@hono/zod-openapi`) 対応。
 
@@ -118,9 +141,9 @@ apps/admin/
 ### 認証フロー
 
 1. `/login` で Better Auth のメール/パスワード認証でログイン
-2. ログイン成功後、`/api/admin/users` 等の管理者 API を呼んで role を確認
+2. ログイン成功後、`GET /api/admin/me` で role を確認
 3. `admin` / `super_admin` でなければエラー表示しセッション破棄
-4. `(dashboard)` ルートグループの layout で毎回 role チェック（ガード）
+4. `(dashboard)` ルートグループの layout で毎回 `/api/admin/me` を呼んで role チェック（ガード）
 
 ### 共有パッケージ利用
 
@@ -131,7 +154,11 @@ apps/admin/
 ## Deploy
 
 - Vercel に `apps/web` とは別プロジェクトとしてデプロイ
-- API の CORS `trustedOrigins` に管理者アプリの URL を追加
+- API の CORS 設定を2箇所更新:
+  1. **Hono CORS ミドルウェア** (`apps/api/src/index.ts`) の `origin` 配列に管理者アプリの URL を追加
+  2. **Better Auth** (`apps/api/src/lib/auth.ts`) の `trustedOrigins` に管理者アプリの URL を追加
+- `wrangler.toml` に `ADMIN_URL` 環境変数を追加
+- `apps/api/src/types.ts` の `Bindings` 型に `ADMIN_URL` を追加
 
 ## Shared Schema Additions (`@starter/shared`)
 
@@ -155,4 +182,30 @@ export const adminUserUpdateStatusSchema = z.object({
   banned: z.boolean(),
   bannedReason: z.string().optional(),
 });
+
+// Response schemas
+export const adminUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string().nullable(),
+  image: z.string().nullable(),
+  role: userRoleSchema,
+  banned: z.boolean().nullable(),
+  bannedReason: z.string().nullable(),
+  emailVerified: z.boolean(),
+  createdAt: z.string().datetime(),
+});
+
+export const adminUserListResponseSchema = z.object({
+  data: z.array(adminUserSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+});
 ```
+
+## Future Considerations (Out of Scope)
+
+- 監査ログ（admin の操作履歴）
+- レートリミット（Upstash Redis 活用）
+- ダッシュボード統計（登録数推移、アクティブユーザー数）
