@@ -1,6 +1,5 @@
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { eq, ilike, or, count } from "drizzle-orm";
-import { createDb, users } from "@starter/db";
+import { createDb, users, eq, ilike, or, count } from "@starter/db";
 import {
   adminUserListQuerySchema,
   adminUserListResponseSchema,

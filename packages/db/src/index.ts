@@ -1,3 +1,3 @@
 export { createDb } from "./client";
-export { sql } from "drizzle-orm";
+export { sql, eq, ilike, or, count } from "drizzle-orm";
 export * from "./schema";

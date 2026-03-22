@@ -1,7 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { createAuth } from "../../lib/auth";
-import { createDb, users } from "@starter/db";
-import { eq } from "drizzle-orm";
+import { createDb, users, eq } from "@starter/db";
 import type { Env } from "../../types";
 import type { UserRole } from "@starter/shared";
 
