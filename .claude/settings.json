@@ -1,0 +1,82 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(apps/api/src/lib/auth.ts)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Warning: authentication configuration changed. Run /security-review before committing.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(apps/api/src/routes/admin/**)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Warning: admin routes changed. Run /security-review before committing.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(apps/api/src/routes/upload/**)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Warning: upload routes changed. Run /security-review before committing.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(packages/db/src/schema/**)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Warning: database schema changed. Review migrations, shared types, and affected auth or admin flows before committing.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.ts)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "grep -n 'console\\.log\\|password\\|card_number\\|cvv\\|secret\\|email\\|phone\\|credit_card\\|token' \"$CLAUDE_FILE_PATH\" 2>/dev/null | grep -vi 'test\\|spec\\|mock\\|\\.env\\.example\\|@map\\|@unique\\|import\\|interface\\|type ' | head -5 && echo '(sensitive data scan complete)' || true"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Bash(cat */.env*)",
+      "Bash(cat .env*)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(less *.env*)",
+      "Bash(more *.env*)",
+      "Bash(grep * .env*)",
+      "Bash(grep * **/.env*)",
+      "Bash(sed * .env*)",
+      "Bash(awk * .env*)",
+      "Bash(cat *.pem)",
+      "Bash(cat *.key)",
+      "Bash(cat *.cert)",
+      "Bash(cat .mcp.json)",
+      "Read(.mcp.json)",
+      "!Read(.env.example)",
+      "!Read(**/.env.example)",
+      "!Write(.env.example)",
+      "!Write(**/.env.example)"
+    ]
+  }
+}

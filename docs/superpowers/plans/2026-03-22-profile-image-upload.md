@@ -452,12 +452,12 @@ export function AvatarUpload({
 
     // Client-side validation
     if (!ALLOWED_IMAGE_TYPES.includes(file.type as typeof ALLOWED_IMAGE_TYPES[number])) {
-      setError("JPEG、PNG、WebP、GIF形式のみ対応しています");
+      setError("Only JPEG, PNG, WebP, and GIF files are supported");
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      setError("ファイルサイズは5MB以下にしてください");
+      setError("File size must be 5MB or less");
       return;
     }
 
@@ -476,12 +476,12 @@ export function AvatarUpload({
         image: publicUrl,
       });
       if (updateError) {
-        throw new Error(updateError.message ?? "プロフィールの更新に失敗しました");
+        throw new Error(updateError.message ?? "Failed to update profile");
       }
       setLastPublicUrl(null);
       onUploadComplete?.(publicUrl);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "プロフィールの更新に失敗しました");
+      setError(e instanceof Error ? e.message : "Failed to update profile");
     } finally {
       setUploading(false);
     }
@@ -506,7 +506,7 @@ export function AvatarUpload({
 
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        throw new Error(body?.error || `アップロードURLの取得に失敗しました (${res.status})`);
+        throw new Error(body?.error || `Failed to get upload URL (${res.status})`);
       }
 
       const { presignedUrl, publicUrl }: PresignedUrlResponse = await res.json();
@@ -519,7 +519,7 @@ export function AvatarUpload({
       });
 
       if (!uploadRes.ok) {
-        throw new Error("画像のアップロードに失敗しました");
+        throw new Error("Failed to upload image");
       }
 
       // Step 3: Update user profile via Better Auth
@@ -530,12 +530,12 @@ export function AvatarUpload({
       if (updateError) {
         // R2 upload succeeded but DB update failed — retain publicUrl for retry
         setLastPublicUrl(publicUrl);
-        throw new Error(updateError.message ?? "プロフィールの更新に失敗しました。リトライボタンで再試行できます。");
+        throw new Error(updateError.message ?? "Failed to update profile. You can retry with the retry button.");
       }
 
       onUploadComplete?.(publicUrl);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "アップロードに失敗しました");
+      setError(e instanceof Error ? e.message : "Upload failed");
       // Keep preview so user sees the uploaded image
     } finally {
       setUploading(false);
@@ -551,7 +551,7 @@ export function AvatarUpload({
         {displayUrl ? (
           <img
             src={displayUrl}
-            alt="プロフィール画像"
+            alt="Profile image"
             className="h-full w-full object-cover"
           />
         ) : (
@@ -561,7 +561,7 @@ export function AvatarUpload({
         )}
         {uploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <span className="text-sm text-white">アップロード中...</span>
+            <span className="text-sm text-white">Uploading...</span>
           </div>
         )}
       </div>
@@ -581,7 +581,7 @@ export function AvatarUpload({
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? "アップロード中..." : "画像を変更"}
+        {uploading ? "Uploading..." : "Change image"}
       </Button>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -593,7 +593,7 @@ export function AvatarUpload({
           onClick={() => retryUpdateUser(lastPublicUrl)}
           disabled={uploading}
         >
-          プロフィール更新をリトライ
+          Retry profile update
         </Button>
       )}
     </div>
@@ -649,7 +649,7 @@ export default function ProfilePage() {
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>読み込み中...</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -662,7 +662,7 @@ export default function ProfilePage() {
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>プロフィール</CardTitle>
+          <CardTitle>Profile</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-6">
           <AvatarUpload
@@ -672,7 +672,7 @@ export default function ProfilePage() {
             }}
           />
           <div className="text-center">
-            <p className="font-medium">{session.user.name || "名前未設定"}</p>
+            <p className="font-medium">{session.user.name || "No name set"}</p>
             <p className="text-sm text-muted-foreground">
               {session.user.email}
             </p>

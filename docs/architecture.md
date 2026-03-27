@@ -1,278 +1,401 @@
 # Architecture Overview
 
+## Summary
+
+This repository is a `pnpm` + Turborepo monorepo with three apps and several shared packages.
+
+- `apps/web` - public-facing Next.js app
+- `apps/admin` - admin Next.js app
+- `apps/api` - Hono API running on Cloudflare Workers
+- `packages/db` - Drizzle ORM schema, client, migrations, seed scripts
+- `packages/shared` - shared types and utilities
+- `packages/ui` - shared UI components
+- `packages/typescript-config` / `packages/eslint-config` - shared tooling config
+
 ## System Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Monorepo (Turborepo + pnpm)               │
-│                                                                  │
-│  ┌─────────────────────────┐    ┌─────────────────────────────┐  │
-│  │   apps/web (Frontend)   │    │    apps/api (Backend)       │  │
-│  │   Next.js 15 (App Router)│    │    Hono.js on CF Workers   │  │
-│  │   Port: 3000            │───▶│    Port: 8787              │  │
-│  │   Deploy: Vercel        │    │    Deploy: Cloudflare       │  │
-│  └─────────────────────────┘    └──────────┬──────────────────┘  │
-│                                            │                     │
-│  ┌──────────────────────────────────────────┼──────────────────┐  │
-│  │              Shared Packages             │                  │  │
-│  │  ┌────────┐ ┌────────┐ ┌─────┐ ┌──────┐│                  │  │
-│  │  │  db    │ │ shared │ │ ui  │ │config││                  │  │
-│  │  │Drizzle │ │  Zod   │ │shad-│ │TS/ES ││                  │  │
-│  │  │ ORM   │ │schemas │ │cn/ui│ │ lint ││                  │  │
-│  │  └────────┘ └────────┘ └─────┘ └──────┘│                  │  │
-│  └──────────────────────────────────────────┘                  │  │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-                                 │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
-              ▼                  ▼                  ▼
-     ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-     │  PostgreSQL   │  │ Upstash Redis│  │ Cloudflare R2│
-     │  (Supabase)   │  │   (Cache)    │  │  (Storage)   │
-     └──────────────┘  └──────────────┘  └──────────────┘
+```text
+                            Monorepo (Turborepo + pnpm)
+
+   ┌──────────────────────┐      HTTP / JSON      ┌─────────────────────────┐
+   │ apps/web             │ ───────────────────▶ │ apps/api                │
+   │ Next.js 15 + React 19│                      │ Hono + OpenAPIHono      │
+   │ Port 3000            │ ◀─────────────────── │ Cloudflare Workers       │
+   └──────────────────────┘                      │ Port 8787 (local)       │
+                                                 └───────────┬─────────────┘
+                                                             │
+   ┌──────────────────────┐      HTTP / JSON                 │
+   │ apps/admin           │ ─────────────────────────────────┘
+   │ Next.js 15 + React 19│
+   │ Port 3001            │
+   └──────────────────────┘
+
+   ┌──────────────────────┐
+   │ packages/shared      │ shared Zod-compatible types / utilities
+   │ packages/ui          │ shared UI components
+   │ packages/db          │ Drizzle schema / DB client / migrations
+   └──────────────────────┘
+
+                                   External Services
+
+          PostgreSQL          Redis REST            Cloudflare R2
+          (local Docker /     (local proxy /        (object storage)
+          Supabase)           Upstash style)
+
+                            Resend               Sentry
+                            (email)              (monitoring)
 ```
 
 ## Tech Stack
 
-| Layer          | Technology                              | Purpose                     |
-| -------------- | --------------------------------------- | --------------------------- |
-| Frontend       | Next.js 15 (App Router) + React 19      | Web application             |
-| UI Components  | shadcn/ui + Tailwind CSS 4              | Design system               |
-| Data Fetching  | TanStack Query 5                        | Server state management     |
-| Forms          | React Hook Form + Zod                   | Client-side form validation |
-| State          | Zustand 5                               | Global client state         |
-| Icons          | Lucide React                            | Icon library                |
-| Backend        | Hono.js + @hono/zod-openapi             | REST API with OpenAPI docs  |
-| Auth           | Better Auth                             | Authentication (email/pass) |
-| ORM            | Drizzle ORM                             | Type-safe database access   |
-| Database       | Supabase PostgreSQL (via Pooler)        | Primary data store          |
-| Cache          | Upstash Redis                           | Caching layer               |
-| Object Storage | Cloudflare R2                           | File/blob storage           |
-| Email          | Resend                                  | Transactional emails        |
-| Monitoring     | Sentry                                  | Error tracking              |
-| Build          | Turborepo + pnpm                        | Monorepo orchestration      |
-| Testing        | Vitest, React Testing Library, Playwright | Unit, integration, E2E     |
+| Layer | Technology | Purpose |
+|------|------------|---------|
+| Frontend | Next.js 15 + React 19 | Web and admin applications |
+| Styling | Tailwind CSS 4 | Application styling |
+| UI | Shared components in `@starter/ui` | Reusable UI building blocks |
+| Forms | React Hook Form + Zod | Client form handling and validation |
+| Data Fetching | `fetch` wrappers + TanStack Query | API integration and server state |
+| State | Zustand | Local client state where needed |
+| Backend | Hono + `@hono/zod-openapi` | HTTP API and OpenAPI docs |
+| Auth | Better Auth | Email/password auth and sessions |
+| ORM | Drizzle ORM | Database schema and access |
+| Database | PostgreSQL | Primary relational database |
+| Cache | Redis via Upstash-compatible REST | Simple verification and cache-style use cases |
+| Storage | Cloudflare R2 | File upload storage |
+| Email | Resend | Transactional email delivery |
+| Monitoring | Sentry | Error reporting |
+| Testing | Vitest, Testing Library, Playwright | Unit, integration, and E2E tests |
+| Tooling | Turborepo + pnpm | Monorepo task orchestration |
 
-## Directory Structure
+## Repository Structure
 
-```
+```text
 starter/
 ├── apps/
-│   ├── api/                          # Hono.js backend (Cloudflare Workers)
+│   ├── api/
 │   │   ├── src/
-│   │   │   ├── index.ts              # OpenAPIHono entry point
-│   │   │   ├── types.ts              # Cloudflare env bindings
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts           # /api/auth/* (Better Auth)
-│   │   │   │   └── verify/           # /verify/* diagnostic endpoints
-│   │   │   └── lib/
-│   │   │       └── auth.ts           # Better Auth instance factory
+│   │   │   ├── index.ts
+│   │   │   ├── types.ts
+│   │   │   ├── lib/
+│   │   │   │   ├── auth.ts
+│   │   │   │   └── r2.ts
+│   │   │   └── routes/
+│   │   │       ├── health.ts
+│   │   │       ├── auth.ts
+│   │   │       ├── verify/
+│   │   │       ├── upload/
+│   │   │       └── admin/
 │   │   ├── wrangler.toml
 │   │   └── vitest.config.ts
-│   │
-│   └── web/                          # Next.js frontend (Vercel)
+│   ├── web/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── auth/
+│   │   │   │   ├── profile/
+│   │   │   │   └── verify/
+│   │   │   ├── components/
+│   │   │   └── lib/
+│   │   └── vitest.config.ts
+│   └── admin/
 │       ├── src/
 │       │   ├── app/
-│       │   │   ├── layout.tsx        # Root layout + Providers
-│       │   │   ├── page.tsx          # Home (API health display)
-│       │   │   ├── providers.tsx     # TanStack Query provider
-│       │   │   └── verify/page.tsx   # Service verification dashboard
+│       │   │   ├── login/
+│       │   │   └── (dashboard)/
+│       │   ├── components/
 │       │   └── lib/
-│       │       ├── api.ts            # fetchApi() wrapper
-│       │       ├── auth-client.ts    # Better Auth React client
-│       │       └── stores/           # Zustand stores
-│       └── vitest.config.ts
-│
+│       └── package.json
 ├── packages/
-│   ├── db/                           # Drizzle ORM schema & client
-│   │   └── src/
-│   │       ├── index.ts              # createDb() factory + exports
-│   │       └── schema/index.ts       # users, sessions, accounts, verifications
-│   ├── shared/                       # Shared Zod schemas & types
-│   │   └── src/types/index.ts        # healthResponse, verifyItem, verifyResponse
-│   ├── ui/                           # shadcn/ui components
-│   │   └── src/components/           # Button, Card, Badge, Input, Label
-│   ├── typescript-config/            # Shared tsconfig presets
-│   └── eslint-config/                # Shared ESLint rules
-│
-├── e2e/                              # Playwright E2E tests
-├── docker-compose.yml                # Local PostgreSQL + Redis
-├── turbo.json                        # Build pipeline
+│   ├── db/
+│   ├── shared/
+│   ├── ui/
+│   ├── typescript-config/
+│   └── eslint-config/
+├── e2e/
+├── docs/
+├── docker-compose.yml
+├── turbo.json
 └── pnpm-workspace.yaml
 ```
 
-## Package Dependency Graph
+## Applications
 
-```
-apps/web ──────▶ @starter/shared (Zod schemas)
-    │──────────▶ @starter/ui (UI components)
-    │
-apps/api ──────▶ @starter/shared (Zod schemas)
-    │──────────▶ @starter/db (Drizzle ORM)
-    │
-e2e ───────────▶ apps/web + apps/api (runs both as webServers)
-```
+### `apps/web`
 
-## API Routes
+Public-facing application built with Next.js App Router.
 
-| Method   | Path                | Description                        |
-| -------- | ------------------- | ---------------------------------- |
-| GET      | `/health`           | Health check (status + timestamp)  |
-| GET      | `/verify/db`        | PostgreSQL connectivity test       |
-| GET      | `/verify/redis`     | Upstash Redis SET/GET/DEL test     |
-| GET      | `/verify/r2`        | Cloudflare R2 bucket access test   |
-| GET      | `/verify/resend`    | Resend API key validation          |
-| GET      | `/verify/sentry`    | Sentry DSN test (sends ping)       |
-| GET      | `/verify/all`       | All verification checks in parallel|
-| ALL      | `/api/auth/*`       | Better Auth handler (login, signup, session) |
-| GET      | `/doc`              | OpenAPI documentation              |
+Key areas:
 
-## Database Schema
+- `/` - basic home page
+- `/auth/register` - registration flow
+- `/auth/login` - login flow
+- `/auth/verify-email` - email verification guidance
+- `/verify` - service verification dashboard
+- `/profile` - authenticated profile page with avatar upload
 
-```
-┌───────────────┐       ┌───────────────┐
-│    users      │       │   sessions    │
-├───────────────┤       ├───────────────┤
-│ id (UUID PK)  │◀──┐   │ id (UUID PK)  │
-│ email (unique)│   │   │ userId (FK)   │──▶ users.id
-│ name          │   │   │ token (unique)│
-│ image         │   │   │ expiresAt     │
-│ emailVerified │   │   │ ipAddress     │
-│ createdAt     │   │   │ userAgent     │
-│ updatedAt     │   │   │ createdAt     │
-└───────────────┘   │   │ updatedAt     │
-                    │   └───────────────┘
-                    │
-                    │   ┌───────────────┐
-                    │   │   accounts    │
-                    │   ├───────────────┤
-                    └───│ userId (FK)   │
-                        │ id (UUID PK)  │
-                        │ accountId     │
-                        │ providerId    │
-                        │ accessToken   │
-                        │ refreshToken  │
-                        │ password      │
-                        └───────────────┘
+Main frontend concerns:
 
-┌───────────────────┐
-│  verifications    │
-├───────────────────┤
-│ id (UUID PK)      │
-│ identifier        │
-│ value             │
-│ expiresAt         │
-│ createdAt         │
-│ updatedAt         │
-└───────────────────┘
-```
+- Better Auth client setup
+- API requests through `src/lib/api.ts`
+- verification state via Zustand
+- forms with React Hook Form + Zod
+- avatar upload flow using presigned URLs
 
-## Authentication Flow
+### `apps/admin`
 
-```
-┌────────────┐     ┌─────────────┐     ┌──────────────┐     ┌────────────┐
-│  Browser   │     │  Next.js    │     │  Hono API    │     │ PostgreSQL │
-│  (Client)  │     │  (Frontend) │     │  (Backend)   │     │ (Supabase) │
-└─────┬──────┘     └──────┬──────┘     └──────┬───────┘     └─────┬──────┘
-      │                   │                   │                   │
-      │  authClient.signUp()                  │                   │
-      │──────────────────▶│                   │                   │
-      │                   │  POST /api/auth/sign-up               │
-      │                   │──────────────────▶│                   │
-      │                   │                   │  INSERT user      │
-      │                   │                   │──────────────────▶│
-      │                   │                   │  INSERT session   │
-      │                   │                   │──────────────────▶│
-      │                   │                   │◀──────────────────│
-      │                   │  Set-Cookie (session token)           │
-      │                   │◀──────────────────│                   │
-      │  session cookie   │                   │                   │
-      │◀──────────────────│                   │                   │
-      │                   │                   │                   │
-      │  authClient.signIn()                  │                   │
-      │──────────────────▶│                   │                   │
-      │                   │  POST /api/auth/sign-in               │
-      │                   │──────────────────▶│                   │
-      │                   │                   │  SELECT user      │
-      │                   │                   │──────────────────▶│
-      │                   │                   │  Verify password  │
-      │                   │                   │  CREATE session   │
-      │                   │                   │──────────────────▶│
-      │                   │  Set-Cookie       │◀──────────────────│
-      │                   │◀──────────────────│                   │
-      │◀──────────────────│                   │                   │
+Admin-facing application built with Next.js App Router.
+
+Key areas:
+
+- `/login` - admin sign-in
+- `/dashboard` - dashboard landing page
+- `/users` - user list
+- `/users/[id]` - user detail page
+
+The admin app talks to the same API and relies on admin-only endpoints protected by API middleware.
+
+### `apps/api`
+
+Backend API built with Hono and OpenAPIHono, designed for Cloudflare Workers deployment.
+
+Main responsibilities:
+
+- health and verification endpoints
+- Better Auth handler mounting
+- presigned upload URL generation
+- admin-only endpoints
+- CORS policy for `web` and `admin`
+- access to PostgreSQL, Redis REST, R2, Resend, and Sentry
+
+## Shared Packages
+
+### `packages/db`
+
+Database package containing:
+
+- Drizzle schema definitions
+- DB client factory
+- migration files under `drizzle/`
+- admin seed script
+
+### `packages/shared`
+
+Shared types and utilities consumed by both apps and the API.
+
+Current shared areas include:
+
+- auth-related types
+- upload-related types
+- admin-related types
+- verify/health response types
+
+### `packages/ui`
+
+Reusable UI components shared across apps, such as:
+
+- `Button`
+- `Input`
+- `Card`
+- `Badge`
+- `Label`
+- `Table`
+- `Separator`
+
+## Dependency Flow
+
+```text
+apps/web   ─┬──▶ @starter/shared
+            └──▶ @starter/ui
+
+apps/admin ─┬──▶ @starter/shared
+            └──▶ @starter/ui
+
+apps/api   ─┬──▶ @starter/shared
+            └──▶ @starter/db
+
+e2e        ────▶ apps/web + apps/api
 ```
 
-## Data Flow (Frontend → Backend)
+## API Surface
 
-```
-┌──────────────────────────────────────────────────────┐
-│                   Frontend (Next.js)                  │
-│                                                      │
-│  Page Component                                      │
-│       │                                              │
-│       ▼                                              │
-│  TanStack Query (useQuery)                           │
-│       │                                              │
-│       ▼                                              │
-│  fetchApi(path) ── NEXT_PUBLIC_API_URL ──────────┐   │
-│                                                  │   │
-│  Zustand Store ◀── UI state updates              │   │
-│  React Hook Form + Zod ◀── form validation       │   │
-└──────────────────────────────────────────────────┼───┘
-                                                   │
-                                          HTTP/REST│
-                                                   ▼
-┌──────────────────────────────────────────────────────┐
-│                Backend (Hono.js)                      │
-│                                                      │
-│  OpenAPIHono Router                                  │
-│       │                                              │
-│       ├── Zod request/response validation            │
-│       ├── Better Auth (session middleware)            │
-│       │                                              │
-│       ▼                                              │
-│  Route Handler                                       │
-│       │                                              │
-│       ├──▶ Drizzle ORM ──▶ PostgreSQL (Supabase)     │
-│       ├──▶ Upstash Redis ──▶ Redis (Cache)           │
-│       ├──▶ AWS SDK ──▶ Cloudflare R2 (Storage)       │
-│       ├──▶ Resend SDK ──▶ Email delivery             │
-│       └──▶ Sentry SDK ──▶ Error tracking             │
-└──────────────────────────────────────────────────────┘
+The main API is mounted in [apps/api/src/index.ts](/Users/taichitakeda/dev/starter/apps/api/src/index.ts).
+
+### Core Routes
+
+| Method | Path | Purpose |
+|------|------|---------|
+| `GET` | `/health` | Basic health check |
+| `GET` | `/verify/db` | Database connectivity check |
+| `GET` | `/verify/redis` | Redis REST connectivity check |
+| `GET` | `/verify/r2` | R2 credential and bucket check |
+| `GET` | `/verify/resend` | Resend API key check |
+| `GET` | `/verify/sentry` | Sentry DSN check |
+| `GET` | `/verify/all` | Aggregated verification report |
+| `ALL` | `/api/auth/*` | Better Auth routes |
+| `POST` | `/upload/presigned-url` | Generate upload URL for avatars |
+| `GET` | `/admin/me` | Current admin info |
+| `GET` | `/admin/users` | Admin user list |
+| `GET` | `/admin/users/:id` | Admin user detail |
+| `PATCH` | `/admin/users/:id/role` | Update user role |
+| `PATCH` | `/admin/users/:id/ban` | Update ban state |
+| `GET` | `/doc` | OpenAPI document |
+
+## Authentication Model
+
+Authentication is handled by Better Auth in the API layer and consumed from both Next.js apps.
+
+High-level flow:
+
+1. A frontend calls the Better Auth client.
+2. The request goes to `/api/auth/*` on the Hono API.
+3. Better Auth reads/writes data through Drizzle and PostgreSQL.
+4. Session cookies are issued by the API.
+5. Protected admin routes pass through dedicated middleware.
+
+Trusted origins are configured from:
+
+- `WEB_URL` defaulting to `http://localhost:3000`
+- `ADMIN_URL` defaulting to `http://localhost:3001`
+
+## Data Model
+
+The main auth-related schema is defined in [packages/db/src/schema/index.ts](/Users/taichitakeda/dev/starter/packages/db/src/schema/index.ts).
+
+### Tables
+
+#### `users`
+
+- `id`
+- `email`
+- `name`
+- `image`
+- `role`
+- `banned`
+- `bannedReason`
+- `emailVerified`
+- `createdAt`
+- `updatedAt`
+
+#### `sessions`
+
+- `id`
+- `userId`
+- `token`
+- `expiresAt`
+- `ipAddress`
+- `userAgent`
+- `createdAt`
+- `updatedAt`
+
+#### `accounts`
+
+- `id`
+- `userId`
+- `accountId`
+- `providerId`
+- `accessToken`
+- `refreshToken`
+- `accessTokenExpiresAt`
+- `refreshTokenExpiresAt`
+- `scope`
+- `idToken`
+- `password`
+- `createdAt`
+- `updatedAt`
+
+#### `verifications`
+
+- `id`
+- `identifier`
+- `value`
+- `expiresAt`
+- `createdAt`
+- `updatedAt`
+
+## Upload Flow
+
+Avatar upload is split across the web app, API, and R2.
+
+```text
+Web profile page
+  -> request POST /upload/presigned-url
+  -> API validates file metadata and returns presigned URL
+  -> browser uploads directly to Cloudflare R2
+  -> frontend updates user profile image through Better Auth
 ```
 
-## Local Development
+This keeps file bytes out of the application server while still enforcing file constraints server-side.
+
+## Verification Endpoints
+
+The `/verify/*` routes are operational diagnostics for local development and environment setup.
+
+They validate:
+
+- database access
+- Redis REST access
+- R2 credentials
+- Resend configuration
+- Sentry configuration
+
+The `/verify/all` endpoint aggregates them into a single response for dashboard-style inspection.
+
+## Local Development Architecture
+
+### Ports
+
+| Service | Port |
+|------|------|
+| Web | `3000` |
+| Admin | `3001` |
+| API | `8787` |
+| PostgreSQL | `5432` |
+| Redis | `6379` |
+| Redis REST proxy | `8079` |
+
+### Local Infrastructure
+
+`docker-compose.yml` provides:
+
+- PostgreSQL 16
+- Redis 7
+- Redis REST proxy for Upstash-compatible API access
+
+Typical local flow:
 
 ```bash
-# Start local services (PostgreSQL + Redis)
-pnpm db:setup        # docker-compose up + migrations
-
-# Start all apps
-pnpm dev             # Turborepo runs api (8787) + web (3000)
-
-# Run tests
-pnpm test            # Vitest (unit/integration)
-pnpm e2e             # Playwright (end-to-end)
+pnpm install
+pnpm db:setup
+pnpm dev
 ```
 
-### Local Service Ports
+## Deployment Model
 
-| Service                | Port  |
-| ---------------------- | ----- |
-| Next.js (web)          | 3000  |
-| Hono.js (api)          | 8787  |
-| PostgreSQL             | 5432  |
-| Redis                  | 6379  |
-| Redis HTTP (Serverless)| 8079  |
+Current intended deployment split:
 
-## Deployment
+| Part | Platform |
+|------|----------|
+| `apps/web` | Vercel |
+| `apps/admin` | Vercel |
+| `apps/api` | Cloudflare Workers |
+| PostgreSQL | Supabase |
+| Redis | Upstash |
+| Object storage | Cloudflare R2 |
+| Email | Resend |
+| Monitoring | Sentry |
 
-| App      | Platform           | Notes                                    |
-| -------- | ------------------ | ---------------------------------------- |
-| Frontend | Vercel             | Next.js App Router, automatic deployment |
-| Backend  | Cloudflare Workers | Serverless, edge-distributed, via Wrangler |
-| Database | Supabase           | Managed PostgreSQL with connection pooler |
-| Cache    | Upstash            | Serverless Redis with REST API           |
-| Storage  | Cloudflare R2      | S3-compatible object storage             |
+## Testing Strategy
+
+| Layer | Tooling |
+|------|---------|
+| API unit/integration | Vitest |
+| Web/Admin component tests | Vitest + Testing Library |
+| End-to-end | Playwright |
+
+Playwright lives in `e2e/` and starts `apps/api` and `apps/web` as local web servers during test runs.
+
+## Related Documents
+
+- [development-workflow.md](/Users/taichitakeda/dev/starter/docs/development-workflow.md)
+- [troubleshooting.md](/Users/taichitakeda/dev/starter/docs/troubleshooting.md)
+- [authentication.md](/Users/taichitakeda/dev/starter/docs/authentication.md)
+- [profile.md](/Users/taichitakeda/dev/starter/docs/profile.md)

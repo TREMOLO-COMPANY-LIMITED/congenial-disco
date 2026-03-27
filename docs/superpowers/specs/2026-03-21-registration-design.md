@@ -74,8 +74,8 @@ export function createAuth(env: Bindings) {
         await resend.emails.send({
           from: "noreply@example.com",
           to: user.email,
-          subject: "メールアドレスの確認",
-          html: `<a href="${verificationUrl}">メールアドレスを確認する</a>`,
+          subject: "Verify your email address",
+          html: `<a href="${verificationUrl}">Verify your email address</a>`,
         });
       },
     },

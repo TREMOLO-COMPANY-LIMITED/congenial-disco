@@ -154,28 +154,28 @@ import { z } from "zod";
 
 export const passwordSchema = z
   .string()
-  .min(8, "パスワードは8文字以上で入力してください")
-  .regex(/[A-Z]/, "大文字を含めてください")
-  .regex(/[a-z]/, "小文字を含めてください")
-  .regex(/[0-9]/, "数字を含めてください");
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Must contain an uppercase letter")
+  .regex(/[a-z]/, "Must contain a lowercase letter")
+  .regex(/[0-9]/, "Must contain a number");
 
 export const registerSchema = z
   .object({
-    name: z.string().min(1, "名前を入力してください").max(100),
-    email: z.string().email("有効なメールアドレスを入力してください"),
+    name: z.string().min(1, "Please enter your name").max(100),
+    email: z.string().email("Please enter a valid email address"),
     password: passwordSchema,
     passwordConfirmation: z.string(),
   })
   .refine((data) => data.password === data.passwordConfirmation, {
-    message: "パスワードが一致しません",
+    message: "Passwords do not match",
     path: ["passwordConfirmation"],
   });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const loginSchema = z.object({
-  email: z.string().email("有効なメールアドレスを入力してください"),
-  password: z.string().min(1, "パスワードを入力してください"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Please enter your password"),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -260,8 +260,8 @@ export function createAuth(env: Bindings) {
         await resend.emails.send({
           from: "noreply@example.com",
           to: user.email,
-          subject: "メールアドレスの確認",
-          html: `<a href="${verificationUrl}">メールアドレスを確認する</a>`,
+          subject: "Verify your email address",
+          html: `<a href="${verificationUrl}">Verify your email address</a>`,
         });
       },
     },
@@ -354,19 +354,19 @@ describe("RegisterPage", () => {
 
   it("renders all form fields", () => {
     render(<RegisterPage />);
-    expect(screen.getByLabelText("名前")).toBeInTheDocument();
-    expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
-    expect(screen.getByLabelText("パスワード")).toBeInTheDocument();
-    expect(screen.getByLabelText("パスワード（確認）")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "登録" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByLabelText("Confirm password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Register" })).toBeInTheDocument();
   });
 
   it("shows validation errors for empty form submission", async () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
-    await user.click(screen.getByRole("button", { name: "登録" }));
+    await user.click(screen.getByRole("button", { name: "Register" }));
     await waitFor(() => {
-      expect(screen.getByText("名前を入力してください")).toBeInTheDocument();
+      expect(screen.getByText("Please enter your name")).toBeInTheDocument();
     });
   });
 
@@ -375,11 +375,11 @@ describe("RegisterPage", () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
 
-    await user.type(screen.getByLabelText("名前"), "Test User");
-    await user.type(screen.getByLabelText("メールアドレス"), "test@example.com");
-    await user.type(screen.getByLabelText("パスワード"), "Password1");
-    await user.type(screen.getByLabelText("パスワード（確認）"), "Password1");
-    await user.click(screen.getByRole("button", { name: "登録" }));
+    await user.type(screen.getByLabelText("Name"), "Test User");
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Register" }));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -402,11 +402,11 @@ describe("RegisterPage", () => {
     const user = userEvent.setup();
     render(<RegisterPage />);
 
-    await user.type(screen.getByLabelText("名前"), "Test User");
-    await user.type(screen.getByLabelText("メールアドレス"), "test@example.com");
-    await user.type(screen.getByLabelText("パスワード"), "Password1");
-    await user.type(screen.getByLabelText("パスワード（確認）"), "Password1");
-    await user.click(screen.getByRole("button", { name: "登録" }));
+    await user.type(screen.getByLabelText("Name"), "Test User");
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.type(screen.getByLabelText("Confirm password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Register" }));
 
     await waitFor(() => {
       expect(screen.getByText("Email already exists")).toBeInTheDocument();
@@ -415,7 +415,7 @@ describe("RegisterPage", () => {
 
   it("has link to login page", () => {
     render(<RegisterPage />);
-    const link = screen.getByRole("link", { name: /ログイン/ });
+    const link = screen.getByRole("link", { name: /Login/ });
     expect(link).toHaveAttribute("href", "/auth/login");
   });
 });
@@ -479,7 +479,7 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>アカウント登録</CardTitle>
+        <CardTitle>Create Account</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -488,7 +488,7 @@ export default function RegisterPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="name">名前</Label>
+            <Label htmlFor="name">Name</Label>
             <Input id="name" {...register("name")} />
             {errors.name && (
               <p className="text-sm text-red-600">{errors.name.message}</p>
@@ -496,7 +496,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">メールアドレス</Label>
+            <Label htmlFor="email">Email address</Label>
             <Input id="email" type="email" {...register("email")} />
             {errors.email && (
               <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -504,7 +504,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">パスワード</Label>
+            <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" {...register("password")} />
             {errors.password && (
               <p className="text-sm text-red-600">{errors.password.message}</p>
@@ -512,7 +512,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="passwordConfirmation">パスワード（確認）</Label>
+            <Label htmlFor="passwordConfirmation">Confirm password</Label>
             <Input
               id="passwordConfirmation"
               type="password"
@@ -526,13 +526,13 @@ export default function RegisterPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "登録中..." : "登録"}
+            {isSubmitting ? "Registering..." : "Register"}
           </Button>
 
           <p className="text-center text-sm text-gray-600">
-            すでにアカウントをお持ちですか？{" "}
+            Already have an account?{" "}
             <Link href="/auth/login" className="text-blue-600 hover:underline">
-              ログイン
+              Login
             </Link>
           </p>
         </form>
@@ -599,7 +599,7 @@ describe("VerifyEmailPage", () => {
     };
     render(<VerifyEmailPage />);
     expect(screen.getByText(/test@example.com/)).toBeInTheDocument();
-    expect(screen.getByText(/メールを確認してください/)).toBeInTheDocument();
+    expect(screen.getByText(/Check your email/)).toBeInTheDocument();
   });
 
   it("calls verifyEmail when token param is present", async () => {
@@ -697,7 +697,7 @@ export default function VerifyEmailPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>メールアドレスを確認中...</CardTitle>
+          <CardTitle>Verifying email address...</CardTitle>
         </CardHeader>
       </Card>
     );
@@ -707,7 +707,7 @@ export default function VerifyEmailPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>認証エラー</CardTitle>
+          <CardTitle>Verification Error</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-red-600">{error}</p>
@@ -716,7 +716,7 @@ export default function VerifyEmailPage() {
               href="/auth/register"
               className="text-blue-600 hover:underline"
             >
-              登録画面に戻る
+              Back to registration
             </Link>
           </p>
         </CardContent>
@@ -727,23 +727,23 @@ export default function VerifyEmailPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>メールを確認してください</CardTitle>
+        <CardTitle>Check your email</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-gray-600">
           {email && (
             <>
-              <span className="font-medium">{email}</span> に確認メールを送信しました。
+              <span className="font-medium">{email}</span> has been sent a verification email.
             </>
           )}
-          メール内のリンクをクリックして、アカウントを有効化してください。
+          Click the link in the email to activate your account.
         </p>
         <p className="mt-4 text-center text-sm text-gray-600">
           <Link
             href="/auth/login"
             className="text-blue-600 hover:underline"
           >
-            ログイン画面へ
+            Go to login
           </Link>
         </p>
       </CardContent>
@@ -806,9 +806,9 @@ describe("LoginPage", () => {
 
   it("renders email and password fields", () => {
     render(<LoginPage />);
-    expect(screen.getByLabelText("メールアドレス")).toBeInTheDocument();
-    expect(screen.getByLabelText("パスワード")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ログイン" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Email address")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Login" })).toBeInTheDocument();
   });
 
   it("shows success message when verified=true", () => {
@@ -817,7 +817,7 @@ describe("LoginPage", () => {
     };
     render(<LoginPage />);
     expect(
-      screen.getByText(/メールアドレスが確認されました/)
+      screen.getByText(/Your email address has been verified/)
     ).toBeInTheDocument();
   });
 
@@ -826,9 +826,9 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("メールアドレス"), "test@example.com");
-    await user.type(screen.getByLabelText("パスワード"), "Password1");
-    await user.click(screen.getByRole("button", { name: "ログイン" }));
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "Password1");
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith({
@@ -848,9 +848,9 @@ describe("LoginPage", () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
-    await user.type(screen.getByLabelText("メールアドレス"), "test@example.com");
-    await user.type(screen.getByLabelText("パスワード"), "wrong");
-    await user.click(screen.getByRole("button", { name: "ログイン" }));
+    await user.type(screen.getByLabelText("Email address"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong");
+    await user.click(screen.getByRole("button", { name: "Login" }));
 
     await waitFor(() => {
       expect(screen.getByText("Invalid credentials")).toBeInTheDocument();
@@ -859,7 +859,7 @@ describe("LoginPage", () => {
 
   it("has link to register page", () => {
     render(<LoginPage />);
-    const link = screen.getByRole("link", { name: /登録/ });
+    const link = screen.getByRole("link", { name: /Register/ });
     expect(link).toHaveAttribute("href", "/auth/register");
   });
 });
@@ -924,13 +924,13 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ログイン</CardTitle>
+        <CardTitle>Login</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {verified && (
             <p className="text-sm text-green-600">
-              メールアドレスが確認されました。ログインしてください。
+              Your email address has been verified。Please log in.
             </p>
           )}
 
@@ -939,7 +939,7 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">メールアドレス</Label>
+            <Label htmlFor="email">Email address</Label>
             <Input id="email" type="email" {...register("email")} />
             {errors.email && (
               <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -947,7 +947,7 @@ export default function LoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">パスワード</Label>
+            <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" {...register("password")} />
             {errors.password && (
               <p className="text-sm text-red-600">{errors.password.message}</p>
@@ -955,16 +955,16 @@ export default function LoginPage() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "ログイン中..." : "ログイン"}
+            {isSubmitting ? "Logging in..." : "Login"}
           </Button>
 
           <p className="text-center text-sm text-gray-600">
-            アカウントをお持ちでないですか？{" "}
+            Don't have an account?{" "}
             <Link
               href="/auth/register"
               className="text-blue-600 hover:underline"
             >
-              登録
+              Register
             </Link>
           </p>
         </form>

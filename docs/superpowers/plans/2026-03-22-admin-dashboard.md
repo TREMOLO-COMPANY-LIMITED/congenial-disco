@@ -1143,7 +1143,7 @@ export default function AdminLoginPage() {
       password: data.password,
     });
     if (error) {
-      setApiError(error.message ?? "ログインに失敗しました");
+      setApiError(error.message ?? "Login failed");
       return;
     }
 
@@ -1157,14 +1157,14 @@ export default function AdminLoginPage() {
 
       if (!res.ok) {
         await authClient.signOut();
-        setApiError("管理者権限がありません");
+        setApiError("You do not have admin privileges");
         return;
       }
 
       router.push("/dashboard");
     } catch {
       await authClient.signOut();
-      setApiError("権限の確認に失敗しました");
+      setApiError("Failed to verify permissions");
     } finally {
       setCheckingRole(false);
     }
@@ -1174,7 +1174,7 @@ export default function AdminLoginPage() {
     <div className="flex min-h-screen items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>管理者ログイン</CardTitle>
+          <CardTitle>Admin Login</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -1185,7 +1185,7 @@ export default function AdminLoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">メールアドレス</Label>
+              <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -1201,7 +1201,7 @@ export default function AdminLoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">パスワード</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -1217,7 +1217,7 @@ export default function AdminLoginPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={isSubmitting || checkingRole}>
-              {checkingRole ? "権限確認中..." : isSubmitting ? "ログイン中..." : "ログイン"}
+              {checkingRole ? "Checking permissions..." : isSubmitting ? "Logging in..." : "Login"}
             </Button>
           </form>
         </CardContent>
@@ -1258,8 +1258,8 @@ import { authClient } from "@/lib/auth-client";
 import { cn } from "@starter/ui";
 
 const navItems = [
-  { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/users", label: "ユーザー管理", icon: Users },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/users", label: "User Management", icon: Users },
 ];
 
 export function Sidebar() {
@@ -1301,7 +1301,7 @@ export function Sidebar() {
 
       <Button variant="outline" className="w-full" onClick={handleLogout}>
         <LogOut className="mr-2 h-4 w-4" />
-        ログアウト
+        Logout
       </Button>
     </aside>
   );
@@ -1338,7 +1338,7 @@ export default function DashboardLayout({
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">読み込み中...</p>
+        <p className="text-gray-500">Loading...</p>
       </div>
     );
   }
@@ -1366,13 +1366,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@starter/ui";
 export default function DashboardPage() {
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">ダッシュボード</h1>
+      <h1 className="mb-6 text-2xl font-bold">Dashboard</h1>
       <Card>
         <CardHeader>
-          <CardTitle>概要</CardTitle>
+          <CardTitle>Overview</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500">管理者ダッシュボードへようこそ。左のメニューからユーザー管理にアクセスできます。</p>
+          <p className="text-gray-500">Welcome to the admin dashboard. Use the menu on the left to access user management.</p>
         </CardContent>
       </Card>
     </div>
@@ -1430,36 +1430,36 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">ユーザー管理</h1>
+      <h1 className="mb-6 text-2xl font-bold">User Management</h1>
 
       <form onSubmit={handleSearch} className="mb-4 flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="メールアドレスまたは名前で検索..."
+            placeholder="Search by email address or name..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="pl-10"
           />
         </div>
-        <Button type="submit">検索</Button>
+        <Button type="submit">Search</Button>
       </form>
 
       {isLoading ? (
-        <p className="text-gray-500">読み込み中...</p>
+        <p className="text-gray-500">Loading...</p>
       ) : !data || data.data.length === 0 ? (
-        <p className="text-gray-500">ユーザーが見つかりません。</p>
+        <p className="text-gray-500">No users found.</p>
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 font-medium">メール</th>
-                  <th className="px-4 py-3 font-medium">名前</th>
-                  <th className="px-4 py-3 font-medium">権限</th>
-                  <th className="px-4 py-3 font-medium">状態</th>
-                  <th className="px-4 py-3 font-medium">登録日</th>
+                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Name</th>
+                  <th className="px-4 py-3 font-medium">Role</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Created at</th>
                 </tr>
               </thead>
               <tbody>
@@ -1478,9 +1478,9 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {user.banned ? (
-                        <Badge variant="destructive">停止</Badge>
+                        <Badge variant="destructive">Suspend</Badge>
                       ) : (
-                        <Badge variant="secondary">有効</Badge>
+                        <Badge variant="secondary">Active</Badge>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -1494,7 +1494,7 @@ export default function UsersPage() {
 
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              全 {data.total} 件中 {(page - 1) * limit + 1}–{Math.min(page * limit, data.total)} 件
+              Showing {data.total} of {(page - 1) * limit + 1}–{Math.min(page * limit, data.total)} items
             </p>
             <div className="flex gap-2">
               <Button
@@ -1559,11 +1559,11 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const updateStatus = useUpdateUserStatus();
 
   if (isLoading) {
-    return <p className="text-gray-500">読み込み中...</p>;
+    return <p className="text-gray-500">Loading...</p>;
   }
 
   if (!user) {
-    return <p className="text-gray-500">ユーザーが見つかりません。</p>;
+    return <p className="text-gray-500">No users found.</p>;
   }
 
   const isSelf = me?.id === user.id;
@@ -1577,7 +1577,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     updateStatus.mutate({
       id: user.id,
       banned: !user.banned,
-      bannedReason: user.banned ? undefined : "管理者により停止",
+      bannedReason: user.banned ? undefined : "Suspended by admin",
     });
   };
 
@@ -1588,16 +1588,16 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
       >
         <ArrowLeft className="h-4 w-4" />
-        ユーザー一覧に戻る
+        Back to user list
       </button>
 
-      <h1 className="mb-6 text-2xl font-bold">ユーザー詳細</h1>
+      <h1 className="mb-6 text-2xl font-bold">User Details</h1>
 
       <div className="space-y-6">
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>基本情報</CardTitle>
+            <CardTitle>Basic Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex justify-between">
@@ -1605,21 +1605,21 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               <span className="font-mono text-sm">{user.id}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">メール</span>
+              <span className="text-gray-500">Email</span>
               <span>{user.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">名前</span>
+              <span className="text-gray-500">Name</span>
               <span>{user.name ?? "—"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">メール確認</span>
+              <span className="text-gray-500">Email verification</span>
               <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                {user.emailVerified ? "確認済み" : "未確認"}
+                {user.emailVerified ? "Verified" : "Unverified"}
               </Badge>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">登録日</span>
+              <span className="text-gray-500">Created at</span>
               <span>{new Date(user.createdAt).toLocaleString("ja-JP")}</span>
             </div>
           </CardContent>
@@ -1628,12 +1628,12 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         {/* Role Management */}
         <Card>
           <CardHeader>
-            <CardTitle>権限</CardTitle>
+            <CardTitle>Role</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">現在の権限</p>
+                <p className="text-sm text-gray-500">Current role</p>
                 <Badge
                   variant={
                     user.role === "super_admin"
@@ -1663,7 +1663,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               )}
               {!isSuperAdmin && (
-                <p className="text-sm text-gray-400">権限変更は super_admin のみ</p>
+                <p className="text-sm text-gray-400">Only super_admin can change roles</p>
               )}
             </div>
             {updateRole.error && (
@@ -1675,17 +1675,17 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
         {/* Status Management */}
         <Card>
           <CardHeader>
-            <CardTitle>アカウント状態</CardTitle>
+            <CardTitle>Account Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">状態</p>
+                <p className="text-sm text-gray-500">Status</p>
                 <Badge variant={user.banned ? "destructive" : "secondary"} className="mt-1">
-                  {user.banned ? "停止中" : "有効"}
+                  {user.banned ? "Suspended" : "Active"}
                 </Badge>
                 {user.bannedReason && (
-                  <p className="mt-1 text-sm text-gray-500">理由: {user.bannedReason}</p>
+                  <p className="mt-1 text-sm text-gray-500">Reason: {user.bannedReason}</p>
                 )}
               </div>
               {!isSelf && (
@@ -1695,7 +1695,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                   disabled={updateStatus.isPending}
                   onClick={handleToggleBan}
                 >
-                  {user.banned ? "有効化" : "停止"}
+                  {user.banned ? "Activate" : "Suspend"}
                 </Button>
               )}
             </div>
@@ -1740,7 +1740,7 @@ Expected: API on 8787, Web on 3000, Admin on 3001 — all start without errors.
 5. Navigate to `/users` → see user list
 6. Click a user → see detail page
 7. Change role, toggle ban status
-8. Login as non-admin → should see "管理者権限がありません" error
+8. Login as non-admin → should see "You do not have admin privileges" error
 
 - [ ] **Step 4: Final commit**
 

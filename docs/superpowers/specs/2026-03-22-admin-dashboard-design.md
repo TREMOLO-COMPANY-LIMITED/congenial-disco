@@ -2,172 +2,184 @@
 
 ## Overview
 
-ユーザー管理機能を備えた管理者用ダッシュボードを、既存のモノレポに独立した Next.js アプリ (`apps/admin`) として追加する。API は既存の `apps/api` に管理者用エンドポイントを追加して共有する。
+Add an administrator dashboard with user-management capabilities as a separate Next.js app, `apps/admin`, within the existing monorepo. The API should remain shared by extending the existing `apps/api` application with admin-specific endpoints.
 
 ## Requirements
 
-- ユーザー向けアプリ (`apps/web`) とは完全に分離
-- 同じ技術スタック（Next.js, shadcn/ui, TanStack Query, Better Auth）
-- ユーザーテーブルに権限カラムを追加（`user` / `admin` / `super_admin`）
-- 管理者権限を持つユーザーのみダッシュボードにログイン可能
-- 初期スコープはユーザー管理のみ（一覧、詳細、権限変更、アカウント停止/有効化）
+- fully separated from the user-facing app (`apps/web`)
+- same core stack as the web app: Next.js, shadcn/ui, TanStack Query, Better Auth
+- add a role column to the users table: `user` / `admin` / `super_admin`
+- only users with admin privileges can access the dashboard
+- initial scope is limited to user management: list, detail, role changes, suspend/activate
 
 ## Architecture
 
 ### Approach
 
-`apps/admin` を独立 Next.js アプリとして追加し、API は既存の `apps/api` に管理者用ルートを追加する。
+Add `apps/admin` as an independent Next.js app and add admin routes to the existing `apps/api`.
 
-**選定理由:**
-- ユーザーアプリとの完全分離（デプロイ・変更が独立）
-- 既存の共有パッケージ（`@starter/ui`, `@starter/shared`, `@starter/db`）をそのまま活用
-- Turborepo のワークスペースに自然に乗る
-- 認証基盤は Better Auth を共有し、二重管理を避ける
+Reasons for this approach:
 
-**不採用案:**
-- `apps/web` 内にルートグループで追加 → 分離要件に反する
-- 管理者専用 API アプリも分離 → 現段階ではオーバーエンジニアリング
+- complete separation from the user app for deployment and change management
+- reuse existing shared packages: `@starter/ui`, `@starter/shared`, `@starter/db`
+- natural fit for the existing Turborepo workspace layout
+- share Better Auth rather than introducing duplicate auth infrastructure
+
+Alternatives rejected:
+
+- adding admin routes inside `apps/web` with a route group
+  This conflicts with the separation requirement.
+- creating a separate admin-only API app
+  This is unnecessary complexity at the current stage.
 
 ## Database Changes
 
-### users テーブル — `role` カラム追加
+### Add `role` to the `users` table
 
 ```sql
 ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user';
 ```
 
-Drizzle スキーマ:
+Drizzle schema:
+
 ```typescript
-role: text('role').notNull().default('user'),  // 'user' | 'admin' | 'super_admin'
+role: text("role").notNull().default("user"), // "user" | "admin" | "super_admin"
 ```
 
-- 型: `text`, NOT NULL, デフォルト `'user'`
-- 値: `user` | `admin` | `super_admin`
-- 既存ユーザーはすべて `user` がデフォルト
-- Drizzle マイグレーションで追加
+- type: `text`
+- required with default value `'user'`
+- allowed values: `user`, `admin`, `super_admin`
+- existing users default to `user`
+- added through a Drizzle migration
 
-### users テーブル — `banned` の有効化
+### Enable `banned` on the `users` table
 
-Better Auth の `banned` フィールドを有効化し、アカウント停止/有効化に使用する。
+Use Better Auth's `banned` field for suspend/activate behavior.
 
-Drizzle スキーマ:
+Drizzle schema:
+
 ```typescript
-banned: boolean('banned'),
-bannedReason: text('banned_reason'),
+banned: boolean("banned"),
+bannedReason: text("banned_reason"),
 ```
 
-### 初期 super_admin のブートストラップ
+### Bootstrap the initial `super_admin`
 
-最初の `super_admin` は DB マイグレーション or シードスクリプトで作成する:
+The first `super_admin` should be created through a DB migration or a seed script:
+
 ```sql
 UPDATE users SET role = 'super_admin' WHERE email = '<admin-email>';
 ```
-`packages/db` にシードスクリプト (`seed-admin.ts`) を用意し、環境変数 `ADMIN_EMAIL` で指定。
+
+Provide a seed script in `packages/db` (`seed-admin.ts`) using the `ADMIN_EMAIL` environment variable.
 
 ## API Design
 
-### 管理者用ルート構成
+### Admin route structure
 
-```
+```text
 apps/api/src/routes/admin/
-  ├── middleware.ts    # role チェックミドルウェア
-  └── users.ts        # ユーザー管理 CRUD
+  ├── middleware.ts    # role-check middleware
+  └── users.ts         # user management endpoints
 ```
 
-### ミドルウェア (`middleware.ts`)
+### Middleware (`middleware.ts`)
 
-1. `auth.api.getSession()` でセッション取得 → 未認証なら 401
-2. セッションの userId から DB で `role` を確認
-3. `admin` または `super_admin` でなければ 403
+1. Read the session with `auth.api.getSession()`. Return 401 when unauthenticated.
+2. Load the user's `role` from the DB using the session `userId`.
+3. Return 403 unless the role is `admin` or `super_admin`.
 
-### エンドポイント
+### Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/admin/me` | 認証済みユーザーの role 確認 |
-| GET | `/api/admin/users` | ユーザー一覧（ページネーション、検索） |
-| GET | `/api/admin/users/:id` | ユーザー詳細 |
-| PATCH | `/api/admin/users/:id/role` | 権限変更（`super_admin` のみ実行可能） |
-| PATCH | `/api/admin/users/:id/status` | アカウント停止/有効化 |
+| GET | `/api/admin/me` | Check the role of the authenticated user |
+| GET | `/api/admin/users` | List users with pagination and search |
+| GET | `/api/admin/users/:id` | Get user details |
+| PATCH | `/api/admin/users/:id/role` | Change a user's role, only for `super_admin` |
+| PATCH | `/api/admin/users/:id/status` | Suspend or activate an account |
 
-### 権限階層ルール
+### Permission hierarchy rules
 
-- `admin`: ユーザー一覧・詳細の閲覧、アカウント停止/有効化が可能
-- `super_admin`: 上記に加え、role の変更が可能
-- 自分自身の role 変更・ban は不可（最後の `super_admin` を消すリスク防止）
+- `admin`: can view the user list and details, and suspend/activate accounts
+- `super_admin`: can do all of the above and can change roles
+- users cannot change their own role or ban themselves to avoid removing the last `super_admin`
 
-**バリデーション:** リクエスト/レスポンスは `@starter/shared` の Zod schema で型安全に定義。OpenAPI (`@hono/zod-openapi`) 対応。
+Validation:
 
-## Frontend — `apps/admin`
+- define request and response schemas in `@starter/shared`
+- keep them type-safe with Zod
+- expose them through OpenAPI via `@hono/zod-openapi`
 
-### 技術スタック
+## Frontend: `apps/admin`
 
-`apps/web` と同一:
+### Tech stack
+
+Same baseline as `apps/web`:
+
 - Next.js 15 (App Router, Turbopack)
-- shadcn/ui (`@starter/ui`)
+- shadcn/ui via `@starter/ui`
 - TanStack Query
 - Better Auth client
 - Tailwind CSS
 
-### ディレクトリ構成
+### Directory structure
 
-```
+```text
 apps/admin/
   ├── src/
   │   ├── app/
-  │   │   ├── layout.tsx          # ルートレイアウト（Providers）
-  │   │   ├── page.tsx            # / → /login にリダイレクト
+  │   │   ├── layout.tsx            # root layout with Providers
+  │   │   ├── page.tsx              # redirect / to /login
   │   │   ├── login/
-  │   │   │   └── page.tsx        # 管理者ログインページ
+  │   │   │   └── page.tsx          # admin login page
   │   │   └── (dashboard)/
-  │   │       ├── layout.tsx      # 認証 + role チェックガード付きレイアウト
+  │   │       ├── layout.tsx        # auth + role-check guarded layout
   │   │       ├── dashboard/
-  │   │       │   └── page.tsx    # ダッシュボードホーム（将来の統計表示用）
+  │   │       │   └── page.tsx      # dashboard home, future stats area
   │   │       └── users/
-  │   │           ├── page.tsx    # ユーザー一覧
+  │   │           ├── page.tsx      # user list
   │   │           └── [id]/
-  │   │               └── page.tsx # ユーザー詳細・編集
+  │   │               └── page.tsx  # user detail and edit
   │   ├── lib/
-  │   │   ├── auth-client.ts      # Better Auth クライアント
-  │   │   └── api.ts              # API クライアント（TanStack Query hooks）
+  │   │   ├── auth-client.ts        # Better Auth client
+  │   │   └── api.ts                # API client and TanStack Query helpers
   │   └── components/
-  │       ├── sidebar.tsx          # サイドナビゲーション
-  │       └── providers.tsx        # QueryClientProvider
+  │       ├── sidebar.tsx           # side navigation
+  │       └── providers.tsx         # QueryClientProvider
   ├── next.config.ts
   ├── package.json
   └── tsconfig.json
 ```
 
-### 認証フロー
+### Authentication flow
 
-1. `/login` で Better Auth のメール/パスワード認証でログイン
-2. ログイン成功後、`GET /api/admin/me` で role を確認
-3. `admin` / `super_admin` でなければエラー表示しセッション破棄
-4. `(dashboard)` ルートグループの layout で毎回 `/api/admin/me` を呼んで role チェック（ガード）
+1. Log in on `/login` using Better Auth email/password.
+2. After login succeeds, call `GET /api/admin/me` to verify the role.
+3. If the role is not `admin` or `super_admin`, show an error and clear the session.
+4. In the `(dashboard)` layout, call `/api/admin/me` on each entry to enforce the guard.
 
-### 共有パッケージ利用
+### Shared package usage
 
-- `@starter/ui` — UI コンポーネント（Button, Card, Input, Badge, Table 等）
-- `@starter/shared` — Zod schema（role, admin API リクエスト/レスポンス）
-- `@starter/db` — 直接使用しない（API 経由でアクセス）
+- `@starter/ui`: UI components such as Button, Card, Input, Badge, and Table
+- `@starter/shared`: Zod schemas for roles and admin API request/response contracts
+- `@starter/db`: not used directly by the frontend; all access goes through the API
 
-## Deploy
+## Deployment
 
-- Vercel に `apps/web` とは別プロジェクトとしてデプロイ
-- API の CORS 設定を2箇所更新:
-  1. **Hono CORS ミドルウェア** (`apps/api/src/index.ts`) の `origin` 配列に管理者アプリの URL を追加
-  2. **Better Auth** (`apps/api/src/lib/auth.ts`) の `trustedOrigins` に管理者アプリの URL を追加
-- `wrangler.toml` に `ADMIN_URL` 環境変数を追加
-- `apps/api/src/types.ts` の `Bindings` 型に `ADMIN_URL` を追加
+- deploy `apps/admin` to Vercel as a separate project from `apps/web`
+- update API CORS configuration in two places:
+  1. add the admin app URL to the `origin` list in `apps/api/src/index.ts`
+  2. add the admin app URL to `trustedOrigins` in `apps/api/src/lib/auth.ts`
+- add `ADMIN_URL` to `wrangler.toml`
+- add `ADMIN_URL` to the `Bindings` type in `apps/api/src/types.ts`
 
 ## Shared Schema Additions (`@starter/shared`)
 
 ```typescript
-// Role
-export const userRoleSchema = z.enum(['user', 'admin', 'super_admin']);
+export const userRoleSchema = z.enum(["user", "admin", "super_admin"]);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
-// Admin API schemas
 export const adminUserListQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -183,7 +195,6 @@ export const adminUserUpdateStatusSchema = z.object({
   bannedReason: z.string().optional(),
 });
 
-// Response schemas
 export const adminUserSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
@@ -204,8 +215,10 @@ export const adminUserListResponseSchema = z.object({
 });
 ```
 
-## Future Considerations (Out of Scope)
+## Future Considerations
 
-- 監査ログ（admin の操作履歴）
-- レートリミット（Upstash Redis 活用）
-- ダッシュボード統計（登録数推移、アクティブユーザー数）
+Out of scope for the initial version:
+
+- audit logs for admin actions
+- rate limiting using Upstash Redis
+- dashboard analytics such as registration trends and active-user counts
