@@ -7,3 +7,8 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "development"
 WEB_URL = "http://localhost:3000"
 ADMIN_URL = "http://localhost:3001"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+WEB_URL = "https://congenial-disco-web.vercel.app"
+ADMIN_URL = "http://localhost:3001"
