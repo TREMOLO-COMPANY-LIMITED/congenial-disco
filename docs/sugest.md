@@ -17,7 +17,7 @@
 
 ### 1. ベンダーロックインの低減
 
-Supabase の便利な周辺機能を使っていない場合、主要な依存は PostgreSQL の接続文字列だけです。Drizzle ORM と標準 PostgreSQL を中心に据えることで、将来的に Neon、PlanetScale、Railway、Render、AWS RDS、Cloud SQL、自前 PostgreSQL などへ移しやすくなります。
+Supabase の便利な周辺機能を使っていない場合、主要な依存は PostgreSQL の接続文字列だけです。Drizzle ORM と標準 PostgreSQL を中心に据えることで、将来的に Neon、PlanetScale、Turso、Railway、Render、AWS RDS、Cloud SQL、自前 PostgreSQL などへ移しやすくなります。
 
 ### 2. コスト構造の明確化
 
